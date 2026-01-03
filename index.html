@@ -778,13 +778,14 @@
 
             const hasCritical =
                 data.servicenow.incidents.critical > 0 ||
-                data.bums.servers.down > 0 ||
+                data.bums.servers.critical > 0 ||
                 data.solarwinds.cpu_alerts.critical > 0 ||
                 data.aap.jobs.failed > 0 ||
                 data.tenable.vulnerabilities.critical > 0;
 
             const hasWarning =
                 data.servicenow.incidents.high > 3 ||
+                data.bums.servers.warning > 0 ||
                 data.bums.filesystem.alerts > 2 ||
                 data.solarwinds.cpu_alerts.warning > 2 ||
                 data.tenable.scan_failures.total > 2;
@@ -888,14 +889,15 @@
 
         function renderBUMS(data) {
             const bums = data.bums;
-            const hasDown = bums.servers.down > 0;
-            const status = hasDown ? 'critical' : 'ok';
+            const hasCritical = bums.servers.critical > 0;
+            const hasWarning = bums.servers.warning > 0;
+            const status = hasCritical ? 'critical' : hasWarning ? 'warning' : 'ok';
 
-            const downList = bums.servers.down_list.map(s => `
+            const issueList = (bums.servers.issue_list || []).map(s => `
                 <div class="list-item" onclick="openSource('bums', event)">
                     <div class="list-item-content">
                         <div class="list-item-title">${s.name}</div>
-                        <div class="list-item-subtitle">Since ${formatFullDate(s.since)}</div>
+                        <div class="list-item-subtitle">${s.status}</div>
                     </div>
                     <span class="list-item-action">View →</span>
                 </div>
@@ -922,7 +924,7 @@
                         </div>
                         <span class="status-badge status-${status}">
                             <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
-                            ${hasDown ? 'Issues' : 'Healthy'}
+                            ${hasCritical ? 'Critical' : hasWarning ? 'Warning' : 'Healthy'}
                         </span>
                     </div>
                     <div class="card-body">
@@ -930,12 +932,16 @@
                             <div class="section-header">Server Status</div>
                             <div class="stats-grid">
                                 <div class="stat-item">
-                                    <div class="stat-value success">${bums.servers.up}</div>
-                                    <div class="stat-label">Up</div>
+                                    <div class="stat-value success">${bums.servers.good}</div>
+                                    <div class="stat-label">Good</div>
                                 </div>
                                 <div class="stat-item">
-                                    <div class="stat-value critical">${bums.servers.down}</div>
-                                    <div class="stat-label">Down</div>
+                                    <div class="stat-value warning">${bums.servers.warning}</div>
+                                    <div class="stat-label">Warning</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${bums.servers.critical}</div>
+                                    <div class="stat-label">Critical</div>
                                 </div>
                                 <div class="stat-item">
                                     <div class="stat-value neutral">${bums.servers.total}</div>
@@ -943,10 +949,10 @@
                                 </div>
                             </div>
                         </div>
-                        ${hasDown ? `
+                        ${(hasCritical || hasWarning) ? `
                             <div class="section">
-                                <div class="section-header">Servers Down</div>
-                                <div class="list">${downList}</div>
+                                <div class="section-header">Issues</div>
+                                <div class="list">${issueList}</div>
                             </div>
                         ` : ''}
                         <div class="section">

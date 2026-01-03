@@ -125,10 +125,14 @@ def get_mock_data():
         },
         "bums": {
             "servers": {
-                "total": 45, "up": 43, "down": 2,
-                "down_list": [
-                    {"name": "srv-app-012", "since": "2025-12-29T08:15:00Z"},
-                    {"name": "srv-db-003", "since": "2025-12-29T09:45:00Z"}
+                "total": 45,
+                "good": 42,
+                "warning": 2,
+                "critical": 1,
+                "issue_list": [
+                    {"name": "srv-app-012", "status": "Warning"},
+                    {"name": "srv-db-003", "status": "Critical"},
+                    {"name": "srv-web-014", "status": "Warning"}
                 ]
             },
             "filesystem": {
@@ -334,35 +338,84 @@ def fetch_bums():
     try:
         response = fetch_url(cfg['url'], cfg['username'], cfg['password'])
 
+        def normalize_status(value):
+            val = (value or '').strip().lower()
+            if val in ('good', 'ok', 'up', 'healthy', 'green'):
+                return 'good'
+            if val in ('warning', 'warn', 'degraded', 'yellow'):
+                return 'warning'
+            if val in ('critical', 'crit', 'down', 'red', 'error'):
+                return 'critical'
+            return 'warning'
+
+        def strip_tags(value):
+            import html
+            import re
+            text = re.sub(r'<[^>]+>', '', value)
+            return html.unescape(text).strip()
+
         # Try JSON first
         try:
             data = json.loads(response)
-            servers_up = sum(1 for s in data.get('servers', []) if s.get('status') == 'up')
-            servers_down = sum(1 for s in data.get('servers', []) if s.get('status') == 'down')
-            down_list = [
-                {'name': s['hostname'], 'since': s.get('last_seen', datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))}
-                for s in data.get('servers', []) if s.get('status') == 'down'
-            ]
+            servers = data.get('servers', [])
+            good = 0
+            warning = 0
+            critical = 0
+            issue_list = []
+            for server in servers:
+                status = normalize_status(server.get('status'))
+                name = server.get('hostname') or server.get('name') or server.get('server', 'Unknown')
+                if status == 'good':
+                    good += 1
+                elif status == 'critical':
+                    critical += 1
+                    issue_list.append({'name': name, 'status': 'Critical'})
+                else:
+                    warning += 1
+                    issue_list.append({'name': name, 'status': 'Warning'})
+
+            total = len(servers)
         except json.JSONDecodeError:
             # Fall back to HTML parsing
             import re
-            server_pattern = r'<tr.*?<td>(srv-[^<]+)</td>.*?<td>(UP|DOWN)</td>'
-            matches = re.findall(server_pattern, response, re.DOTALL | re.IGNORECASE)
+            row_pattern = r'<tr[^>]*>.*?</tr>'
+            rows = re.findall(row_pattern, response, re.DOTALL | re.IGNORECASE)
+            good = 0
+            warning = 0
+            critical = 0
+            issue_list = []
+            total = 0
 
-            servers_up = sum(1 for _, status in matches if status.upper() == 'UP')
-            servers_down = sum(1 for _, status in matches if status.upper() == 'DOWN')
-            down_list = [
-                {'name': name, 'since': datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
-                for name, status in matches if status.upper() == 'DOWN'
-            ]
+            for row in rows:
+                status_match = re.search(r'<td[^>]*>\s*(Good|Warning|Critical)\s*</td>', row, re.IGNORECASE)
+                if not status_match:
+                    continue
+
+                tds = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL | re.IGNORECASE)
+                if not tds:
+                    continue
+
+                name = strip_tags(tds[0]) or 'Unknown'
+                status = normalize_status(status_match.group(1))
+                total += 1
+
+                if status == 'good':
+                    good += 1
+                elif status == 'critical':
+                    critical += 1
+                    issue_list.append({'name': name, 'status': 'Critical'})
+                else:
+                    warning += 1
+                    issue_list.append({'name': name, 'status': 'Warning'})
 
         record_status('bums', True)
         return {
             'servers': {
-                'total': servers_up + servers_down,
-                'up': servers_up,
-                'down': servers_down,
-                'down_list': down_list
+                'total': total,
+                'good': good,
+                'warning': warning,
+                'critical': critical,
+                'issue_list': issue_list
             },
             'filesystem': {
                 'alerts': 0,

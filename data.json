@@ -27,16 +27,21 @@
   "bums": {
     "servers": {
       "total": 45,
-      "up": 43,
-      "down": 2,
-      "down_list": [
+      "good": 42,
+      "warning": 2,
+      "critical": 1,
+      "issue_list": [
         {
           "name": "srv-app-012",
-          "since": "2025-12-29T08:15:00Z"
+          "status": "Warning"
         },
         {
           "name": "srv-db-003",
-          "since": "2025-12-29T09:45:00Z"
+          "status": "Critical"
+        },
+        {
+          "name": "srv-web-014",
+          "status": "Warning"
         }
       ]
     },
