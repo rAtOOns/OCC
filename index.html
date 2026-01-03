@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unix Dashboard</title>
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --success: #1e8e3e;
+            --warning: #e37400;
+            --danger: #c5221f;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --text-muted: #70757a;
+            --border: #dadce0;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-hover: #f1f3f4;
+            --focus-ring: rgba(26, 115, 232, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Focus styles for accessibility */
+        *:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .logo-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-pill.healthy {
+            background: #e6f4ea;
+            color: var(--success);
+        }
+
+        .status-pill.warning {
+            background: #fef7e0;
+            color: var(--warning);
+        }
+
+        .status-pill.critical {
+            background: #fce8e6;
+            color: var(--danger);
+        }
+
+        .status-pill-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .last-updated {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s, opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .refresh-btn.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .refresh-btn .spinner {
+            display: none;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .refresh-btn.loading .spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Main Content */
+        .main {
+            padding: 16px 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            align-items: start;
+        }
+
+        @media (max-width: 1200px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                padding: 0 16px;
+            }
+            .main {
+                padding: 12px;
+            }
+            .header-right {
+                gap: 10px;
+            }
+            .last-updated {
+                display: none;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow 0.2s, border-color 0.2s;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            box-shadow: 0 1px 3px rgba(60,64,67,0.2), 0 4px 8px rgba(60,64,67,0.1);
+            border-color: #bdc1c6;
+        }
+
+        .card:focus-visible {
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title h2 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-link-icon {
+            font-size: 11px;
+            opacity: 0;
+            color: var(--primary);
+            transition: opacity 0.2s;
+        }
+
+        .card:hover .card-link-icon {
+            opacity: 1;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge .status-icon {
+            font-size: 10px;
+        }
+
+        .status-ok {
+            background: #e6f4ea;
+            color: var(--success);
+        }
+
+        .status-warning {
+            background: #fef7e0;
+            color: var(--warning);
+        }
+
+        .status-critical {
+            background: #fce8e6;
+            color: var(--danger);
+        }
+
+        .card-body {
+            padding: 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 14px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: flex;
+            gap: 6px;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px 6px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            min-width: 0;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 2px;
+        }
+
+        .stat-value.critical { color: var(--danger); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.success { color: var(--success); }
+        .stat-value.info { color: var(--primary); }
+        .stat-value.neutral { color: var(--text-primary); }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Metric Row */
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+        }
+
+        .metric-row + .progress-container {
+            margin-bottom: 10px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .metric-value {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .metric-value.good { color: var(--success); }
+        .metric-value.moderate { color: var(--warning); }
+        .metric-value.poor { color: var(--danger); }
+
+        /* Progress Bar */
+        .progress-container {
+            margin-top: 4px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.good { background: var(--success); }
+        .progress-fill.moderate { background: var(--warning); }
+        .progress-fill.poor { background: var(--danger); }
+
+        /* List Items */
+        .list {
+            max-height: 110px;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .list-item:hover {
+            background: var(--bg-hover);
+        }
+
+        .list-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .list-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-item-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-item-action {
+            font-size: 11px;
+            color: var(--primary);
+            opacity: 0;
+            transition: opacity 0.15s;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
+        .list-item:hover .list-item-action {
+            opacity: 1;
+        }
+
+        .empty-state {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 12px;
+            text-align: center;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        /* Loading Skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-secondary) 25%, #e8eaed 50%, var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-card {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            padding: 14px;
+            min-height: 280px;
+        }
+
+        .skeleton-header {
+            height: 20px;
+            width: 60%;
+            margin-bottom: 16px;
+        }
+
+        .skeleton-stat {
+            height: 50px;
+            margin-bottom: 12px;
+        }
+
+        .skeleton-list {
+            height: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* Error & Warning Banners */
+        .error-banner, .warning-banner {
+            border-bottom: 1px solid;
+            padding: 10px 24px;
+            text-align: center;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .error-banner {
+            background: #fce8e6;
+            border-color: #f5c6cb;
+            color: var(--danger);
+        }
+
+        .warning-banner {
+            background: #fef7e0;
+            border-color: #ffeeba;
+            color: var(--warning);
+        }
+
+        .error-banner button, .warning-banner button {
+            background: transparent;
+            border: 1px solid currentColor;
+            color: inherit;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 12px;
+        }
+
+        .error-banner button:hover {
+            background: rgba(197, 34, 31, 0.1);
+        }
+
+        .warning-banner button:hover {
+            background: rgba(227, 116, 0, 0.1);
+        }
+
+        /* Source Status Indicator */
+        .source-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        .source-status.error {
+            background: #fce8e6;
+            color: var(--danger);
+        }
+
+        .source-status.stale {
+            background: #fef7e0;
+            color: var(--warning);
+        }
+
+        .source-status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Screen reader only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <a href="#dashboard" class="sr-only">Skip to dashboard</a>
+
+    <header class="header" role="banner">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon" aria-hidden="true">U</div>
+                <span class="logo-text">Unix Dashboard</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-pill healthy" id="overallStatus" role="status" aria-live="polite">
+                <span class="status-pill-dot" aria-hidden="true"></span>
+                <span>Operational</span>
+            </div>
+            <span class="last-updated" id="lastUpdated" aria-live="polite">Loading...</span>
+            <button class="refresh-btn" onclick="loadData()" aria-label="Refresh dashboard data">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </header>
+
+    <div id="staleWarning" class="warning-banner" style="display: none;" role="alert">
+        <span>Data may be outdated. Last updated <span id="staleTime"></span>.</span>
+        <button onclick="loadData()">Refresh Now</button>
+    </div>
+
+    <div id="error" class="error-banner" style="display: none;" role="alert">
+        <span id="errorMessage"></span>
+        <button onclick="loadData()">Retry</button>
+    </div>
+
+    <main class="main" role="main">
+        <div class="grid" id="dashboard" aria-label="System status dashboard">
+            <!-- Loading skeleton -->
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton skeleton-header"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-list"></div>
+                <div class="skeleton skeleton-list"></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton skeleton-header"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-list"></div>
+                <div class="skeleton skeleton-list"></div>
+                <div class="skeleton skeleton-list"></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton skeleton-header"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-list"></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton skeleton-header"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-list"></div>
+                <div class="skeleton skeleton-list"></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton skeleton-header"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-list"></div>
+                <div class="skeleton skeleton-list"></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton skeleton-header"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-stat"></div>
+                <div class="skeleton skeleton-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const CONFIG = {
+            dataUrl: 'data.json',
+            refreshInterval: 60000
+        };
+
+        let sourceUrls = {};
+        let fetchStatus = {};
+        let isLoading = false;
+        const STALE_THRESHOLD = 10 * 60 * 1000; // 10 minutes
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        function formatFullDate(dateStr) {
+            return new Date(dateStr).toLocaleString();
+        }
+
+        function openSource(source, e) {
+            if (e) e.stopPropagation();
+            const url = sourceUrls[source];
+            if (url) window.open(url, '_blank');
+        }
+
+        function getSltClass(value) {
+            if (value >= 95) return 'good';
+            if (value >= 85) return 'moderate';
+            return 'poor';
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'ok': return '✓';
+                case 'warning': return '!';
+                case 'critical': return '✕';
+                default: return '';
+            }
+        }
+
+        function checkStaleness(lastUpdated) {
+            const age = Date.now() - new Date(lastUpdated);
+            const staleWarning = document.getElementById('staleWarning');
+            const staleTime = document.getElementById('staleTime');
+
+            if (age > STALE_THRESHOLD) {
+                staleTime.textContent = formatDate(lastUpdated);
+                staleWarning.style.display = 'flex';
+            } else {
+                staleWarning.style.display = 'none';
+            }
+        }
+
+        function getSourceStatusIndicator(sourceName) {
+            const status = fetchStatus[sourceName];
+            if (!status) return '';
+
+            if (!status.ok) {
+                return `<span class="source-status error" title="${status.error || 'Fetch failed'}">
+                    <span class="source-status-dot"></span>
+                    <span>Error</span>
+                </span>`;
+            }
+
+            if (status.error && status.error.includes('Disabled')) {
+                return `<span class="source-status stale" title="Using mock data">
+                    <span class="source-status-dot"></span>
+                    <span>Mock</span>
+                </span>`;
+            }
+
+            return '';
+        }
+
+        function updateOverallStatus(data) {
+            const statusEl = document.getElementById('overallStatus');
+
+            const hasCritical =
+                data.servicenow.incidents.critical > 0 ||
+                data.bums.servers.down > 0 ||
+                data.solarwinds.cpu_alerts.critical > 0 ||
+                data.aap.jobs.failed > 0 ||
+                data.tenable.vulnerabilities.critical > 0;
+
+            const hasWarning =
+                data.servicenow.incidents.high > 3 ||
+                data.bums.filesystem.alerts > 2 ||
+                data.solarwinds.cpu_alerts.warning > 2 ||
+                data.tenable.scan_failures.total > 2;
+
+            statusEl.className = 'status-pill';
+            if (hasCritical) {
+                statusEl.classList.add('critical');
+                statusEl.innerHTML = '<span class="status-pill-dot" aria-hidden="true"></span><span>Critical Issues</span>';
+            } else if (hasWarning) {
+                statusEl.classList.add('warning');
+                statusEl.innerHTML = '<span class="status-pill-dot" aria-hidden="true"></span><span>Warnings</span>';
+            } else {
+                statusEl.classList.add('healthy');
+                statusEl.innerHTML = '<span class="status-pill-dot" aria-hidden="true"></span><span>Operational</span>';
+            }
+        }
+
+        function renderServiceNow(data) {
+            const sn = data.servicenow;
+            const hasCritical = sn.incidents.critical > 0;
+            const status = hasCritical ? 'critical' : 'ok';
+
+            return `
+                <article class="card" onclick="openSource('servicenow')" tabindex="0" role="button"
+                    aria-label="ServiceNow - ${hasCritical ? 'Critical issues' : 'Healthy'}. Click to open ServiceNow.">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h2>ServiceNow</h2>
+                            ${getSourceStatusIndicator('servicenow')}
+                            <span class="card-link-icon" aria-hidden="true">↗</span>
+                        </div>
+                        <span class="status-badge status-${status}">
+                            <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
+                            ${hasCritical ? 'Critical' : 'Healthy'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-header">Open Incidents</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${sn.incidents.critical}</div>
+                                    <div class="stat-label">Critical</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value warning">${sn.incidents.high}</div>
+                                    <div class="stat-label">High</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value info">${sn.incidents.medium}</div>
+                                    <div class="stat-label">Medium</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value neutral">${sn.incidents.low}</div>
+                                    <div class="stat-label">Low</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-header">Requests & Changes</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value info">${sn.requests.open}</div>
+                                    <div class="stat-label">Requests</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value neutral">${sn.changes.scheduled}</div>
+                                    <div class="stat-label">Scheduled</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value warning">${sn.changes.pending_approval}</div>
+                                    <div class="stat-label">Pending</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-header">Service Levels</div>
+                            <div class="metric-row">
+                                <span class="metric-label">Response</span>
+                                <span class="metric-value ${getSltClass(sn.slt.incident_response)}">${sn.slt.incident_response}%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${getSltClass(sn.slt.incident_response)}" style="width: ${sn.slt.incident_response}%"></div>
+                                </div>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Resolution</span>
+                                <span class="metric-value ${getSltClass(sn.slt.incident_resolution)}">${sn.slt.incident_resolution}%</span>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill ${getSltClass(sn.slt.incident_resolution)}" style="width: ${sn.slt.incident_resolution}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderBUMS(data) {
+            const bums = data.bums;
+            const hasDown = bums.servers.down > 0;
+            const status = hasDown ? 'critical' : 'ok';
+
+            const downList = bums.servers.down_list.map(s => `
+                <div class="list-item" onclick="openSource('bums', event)">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${s.name}</div>
+                        <div class="list-item-subtitle">Since ${formatFullDate(s.since)}</div>
+                    </div>
+                    <span class="list-item-action">View →</span>
+                </div>
+            `).join('');
+
+            const fsAlerts = bums.filesystem.alert_list.map(a => `
+                <div class="list-item" onclick="openSource('bums', event)">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${a.server}</div>
+                        <div class="list-item-subtitle">${a.mount} at ${a.usage}%</div>
+                    </div>
+                    <span class="list-item-action">View →</span>
+                </div>
+            `).join('');
+
+            return `
+                <article class="card" onclick="openSource('bums')" tabindex="0" role="button"
+                    aria-label="BUMS Unix Monitoring - ${hasDown ? 'Issues detected' : 'Healthy'}. Click to open.">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h2>BUMS</h2>
+                            ${getSourceStatusIndicator('bums')}
+                            <span class="card-link-icon" aria-hidden="true">↗</span>
+                        </div>
+                        <span class="status-badge status-${status}">
+                            <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
+                            ${hasDown ? 'Issues' : 'Healthy'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-header">Server Status</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value success">${bums.servers.up}</div>
+                                    <div class="stat-label">Up</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${bums.servers.down}</div>
+                                    <div class="stat-label">Down</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value neutral">${bums.servers.total}</div>
+                                    <div class="stat-label">Total</div>
+                                </div>
+                            </div>
+                        </div>
+                        ${hasDown ? `
+                            <div class="section">
+                                <div class="section-header">Servers Down</div>
+                                <div class="list">${downList}</div>
+                            </div>
+                        ` : ''}
+                        <div class="section">
+                            <div class="section-header">Filesystem (${bums.filesystem.alerts})</div>
+                            <div class="list">
+                                ${fsAlerts || '<div class="empty-state">No alerts</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderSolarWinds(data) {
+            const sw = data.solarwinds;
+            const hasCritical = sw.cpu_alerts.critical > 0 || sw.memory_alerts.critical > 0;
+            const hasWarning = sw.cpu_alerts.warning > 0 || sw.memory_alerts.warning > 0;
+            const status = hasCritical ? 'critical' : hasWarning ? 'warning' : 'ok';
+
+            const alerts = sw.cpu_alerts.alert_list.concat(sw.memory_alerts.alert_list).map(a => `
+                <div class="list-item" onclick="openSource('solarwinds', event)">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${a.node}</div>
+                        <div class="list-item-subtitle">${a.cpu ? `CPU: ${a.cpu}%` : `Memory: ${a.memory}%`}</div>
+                    </div>
+                    <span class="list-item-action">View →</span>
+                </div>
+            `).join('');
+
+            return `
+                <article class="card" onclick="openSource('solarwinds')" tabindex="0" role="button"
+                    aria-label="SolarWinds - ${hasCritical ? 'Critical' : hasWarning ? 'Warnings' : 'Healthy'}. Click to open.">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h2>SolarWinds</h2>
+                            ${getSourceStatusIndicator('solarwinds')}
+                            <span class="card-link-icon" aria-hidden="true">↗</span>
+                        </div>
+                        <span class="status-badge status-${status}">
+                            <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
+                            ${hasCritical ? 'Critical' : hasWarning ? 'Warning' : 'Healthy'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-header">CPU Alerts</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${sw.cpu_alerts.critical}</div>
+                                    <div class="stat-label">Critical</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value warning">${sw.cpu_alerts.warning}</div>
+                                    <div class="stat-label">Warning</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-header">Memory Alerts</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${sw.memory_alerts.critical}</div>
+                                    <div class="stat-label">Critical</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value warning">${sw.memory_alerts.warning}</div>
+                                    <div class="stat-label">Warning</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-header">Active Alerts</div>
+                            <div class="list">
+                                ${alerts || '<div class="empty-state">No alerts</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderAAP(data) {
+            const aap = data.aap;
+            const hasFailed = aap.jobs.failed > 0;
+            const passRate = ((aap.jobs.passed / aap.jobs.total) * 100).toFixed(0);
+            const status = hasFailed ? 'critical' : 'ok';
+
+            const failedJobs = aap.jobs.failed_list.map(j => `
+                <div class="list-item" onclick="openSource('aap', event)">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${j.name}</div>
+                        <div class="list-item-subtitle">${j.error}</div>
+                    </div>
+                    <span class="list-item-action">View →</span>
+                </div>
+            `).join('');
+
+            return `
+                <article class="card" onclick="openSource('aap')" tabindex="0" role="button"
+                    aria-label="AAP Ansible Jobs - ${hasFailed ? 'Failures detected' : 'All passed'}. Click to open.">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h2>AAP Jobs</h2>
+                            ${getSourceStatusIndicator('aap')}
+                            <span class="card-link-icon" aria-hidden="true">↗</span>
+                        </div>
+                        <span class="status-badge status-${status}">
+                            <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
+                            ${hasFailed ? 'Failed' : 'Passed'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-header">Last Run</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value success">${aap.jobs.passed}</div>
+                                    <div class="stat-label">Passed</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${aap.jobs.failed}</div>
+                                    <div class="stat-label">Failed</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value info">${passRate}%</div>
+                                    <div class="stat-label">Success</div>
+                                </div>
+                            </div>
+                        </div>
+                        ${hasFailed ? `
+                            <div class="section">
+                                <div class="section-header">Failed Jobs</div>
+                                <div class="list">${failedJobs}</div>
+                            </div>
+                        ` : `
+                            <div class="section">
+                                <div class="empty-state">All ${aap.jobs.total} jobs passed</div>
+                            </div>
+                        `}
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderAudit(data) {
+            const audit = data.audit;
+            const hasMany = audit.config_changes.total > 3;
+            const status = hasMany ? 'warning' : 'ok';
+
+            const changes = audit.config_changes.alerts.slice(0, 4).map(c => `
+                <div class="list-item" onclick="openSource('audit', event)">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${c.server}</div>
+                        <div class="list-item-subtitle">${c.file}</div>
+                    </div>
+                    <span class="list-item-action">View →</span>
+                </div>
+            `).join('');
+
+            return `
+                <article class="card" onclick="openSource('audit')" tabindex="0" role="button"
+                    aria-label="Audit Report - ${hasMany ? 'Review needed' : 'Normal'}. Click to open.">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h2>Audit Report</h2>
+                            ${getSourceStatusIndicator('audit')}
+                            <span class="card-link-icon" aria-hidden="true">↗</span>
+                        </div>
+                        <span class="status-badge status-${status}">
+                            <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
+                            ${hasMany ? 'Review' : 'Normal'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-header">Config Changes</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value ${hasMany ? 'warning' : 'neutral'}">${audit.config_changes.total}</div>
+                                    <div class="stat-label">Changes</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-header">Recent Changes</div>
+                            <div class="list">
+                                ${changes || '<div class="empty-state">No changes</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderTenable(data) {
+            const tenable = data.tenable;
+            const hasCritical = tenable.vulnerabilities.critical > 0;
+            const hasFailures = tenable.scan_failures.total > 0;
+            const status = hasCritical ? 'critical' : hasFailures ? 'warning' : 'ok';
+
+            const failures = tenable.scan_failures.failed_list.slice(0, 3).map(f => `
+                <div class="list-item" onclick="openSource('tenable', event)">
+                    <div class="list-item-content">
+                        <div class="list-item-title">${f.host}</div>
+                        <div class="list-item-subtitle">${f.reason}</div>
+                    </div>
+                    <span class="list-item-action">View →</span>
+                </div>
+            `).join('');
+
+            return `
+                <article class="card" onclick="openSource('tenable')" tabindex="0" role="button"
+                    aria-label="Tenable - ${hasCritical ? 'Critical vulnerabilities' : hasFailures ? 'Scan issues' : 'Healthy'}. Click to open.">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <h2>Tenable</h2>
+                            ${getSourceStatusIndicator('tenable')}
+                            <span class="card-link-icon" aria-hidden="true">↗</span>
+                        </div>
+                        <span class="status-badge status-${status}">
+                            <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
+                            ${hasCritical ? 'Critical' : hasFailures ? 'Issues' : 'Healthy'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="section">
+                            <div class="section-header">Vulnerabilities</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${tenable.vulnerabilities.critical}</div>
+                                    <div class="stat-label">Critical</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value warning">${tenable.vulnerabilities.high}</div>
+                                    <div class="stat-label">High</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value info">${tenable.vulnerabilities.medium}</div>
+                                    <div class="stat-label">Medium</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <div class="section-header">Compliance</div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value success">${tenable.compliance.passed}%</div>
+                                    <div class="stat-label">Passed</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value critical">${tenable.compliance.failed}%</div>
+                                    <div class="stat-label">Failed</div>
+                                </div>
+                            </div>
+                        </div>
+                        ${hasFailures ? `
+                            <div class="section">
+                                <div class="section-header">Scan Failures</div>
+                                <div class="list">${failures}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </article>
+            `;
+        }
+
+        async function loadData() {
+            if (isLoading) return;
+            isLoading = true;
+
+            const refreshBtn = document.querySelector('.refresh-btn');
+            refreshBtn.classList.add('loading');
+
+            try {
+                const response = await fetch(CONFIG.dataUrl + '?t=' + Date.now());
+                if (!response.ok) throw new Error('Failed to fetch data');
+
+                const data = await response.json();
+                sourceUrls = data.sourceUrls || {};
+                fetchStatus = data.fetchStatus || {};
+
+                document.getElementById('error').style.display = 'none';
+                document.getElementById('lastUpdated').textContent = 'Updated ' + formatDate(data.lastUpdated);
+
+                // Check for stale data
+                checkStaleness(data.lastUpdated);
+
+                updateOverallStatus(data);
+
+                document.getElementById('dashboard').innerHTML =
+                    renderServiceNow(data) +
+                    renderBUMS(data) +
+                    renderSolarWinds(data) +
+                    renderAAP(data) +
+                    renderAudit(data) +
+                    renderTenable(data);
+
+                // Add keyboard support for cards
+                document.querySelectorAll('.card').forEach(card => {
+                    card.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            card.click();
+                        }
+                    });
+                });
+
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = 'Error loading data: ' + error.message;
+                document.getElementById('error').style.display = 'flex';
+            } finally {
+                isLoading = false;
+                refreshBtn.classList.remove('loading');
+            }
+        }
+
+        loadData();
+        setInterval(loadData, CONFIG.refreshInterval);
+    </script>
+</body>
+</html>

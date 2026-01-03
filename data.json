@@ -1,0 +1,242 @@
+{
+  "lastUpdated": "2026-01-03T12:10:10Z",
+  "servicenow": {
+    "incidents": {
+      "critical": 2,
+      "high": 5,
+      "medium": 12,
+      "low": 8,
+      "total": 27
+    },
+    "requests": {
+      "open": 15,
+      "pending": 7,
+      "completed_today": 12
+    },
+    "changes": {
+      "scheduled": 3,
+      "in_progress": 1,
+      "pending_approval": 4
+    },
+    "slt": {
+      "incident_response": 94.5,
+      "incident_resolution": 87.2,
+      "request_fulfillment": 91.8
+    }
+  },
+  "bums": {
+    "servers": {
+      "total": 45,
+      "up": 43,
+      "down": 2,
+      "down_list": [
+        {
+          "name": "srv-app-012",
+          "since": "2025-12-29T08:15:00Z"
+        },
+        {
+          "name": "srv-db-003",
+          "since": "2025-12-29T09:45:00Z"
+        }
+      ]
+    },
+    "filesystem": {
+      "alerts": 3,
+      "alert_list": [
+        {
+          "server": "srv-app-007",
+          "mount": "/var/log",
+          "usage": 92
+        },
+        {
+          "server": "srv-web-002",
+          "mount": "/opt/data",
+          "usage": 88
+        },
+        {
+          "server": "srv-db-001",
+          "mount": "/backup",
+          "usage": 95
+        }
+      ]
+    }
+  },
+  "solarwinds": {
+    "cpu_alerts": {
+      "critical": 1,
+      "warning": 3,
+      "alert_list": [
+        {
+          "node": "web-prod-01",
+          "cpu": 98,
+          "severity": "critical"
+        },
+        {
+          "node": "app-prod-03",
+          "cpu": 85,
+          "severity": "warning"
+        },
+        {
+          "node": "db-prod-02",
+          "cpu": 82,
+          "severity": "warning"
+        },
+        {
+          "node": "cache-01",
+          "cpu": 80,
+          "severity": "warning"
+        }
+      ]
+    },
+    "memory_alerts": {
+      "critical": 0,
+      "warning": 2,
+      "alert_list": [
+        {
+          "node": "app-prod-01",
+          "memory": 87,
+          "severity": "warning"
+        },
+        {
+          "node": "web-prod-02",
+          "memory": 84,
+          "severity": "warning"
+        }
+      ]
+    }
+  },
+  "aap": {
+    "last_run": "2026-01-03T06:00:00Z",
+    "jobs": {
+      "total": 24,
+      "passed": 22,
+      "failed": 2,
+      "failed_list": [
+        {
+          "name": "backup-db-weekly",
+          "error": "Connection timeout to db-backup-srv"
+        },
+        {
+          "name": "patch-compliance-check",
+          "error": "Host unreachable: srv-app-012"
+        }
+      ]
+    }
+  },
+  "audit": {
+    "last_scan": "2026-01-03T05:00:00Z",
+    "config_changes": {
+      "total": 5,
+      "alerts": [
+        {
+          "server": "srv-web-001",
+          "file": "/etc/ssh/sshd_config",
+          "change": "PermitRootLogin modified",
+          "time": "2025-12-28T22:30:00Z"
+        },
+        {
+          "server": "srv-app-005",
+          "file": "/etc/passwd",
+          "change": "New user added: svc_deploy",
+          "time": "2025-12-28T18:15:00Z"
+        },
+        {
+          "server": "srv-db-002",
+          "file": "/etc/sudoers",
+          "change": "Sudo rule modified",
+          "time": "2025-12-28T14:00:00Z"
+        },
+        {
+          "server": "srv-web-003",
+          "file": "/etc/hosts",
+          "change": "New entry added",
+          "time": "2025-12-29T01:20:00Z"
+        },
+        {
+          "server": "srv-app-001",
+          "file": "/etc/crontab",
+          "change": "New cron job added",
+          "time": "2025-12-29T03:45:00Z"
+        }
+      ]
+    }
+  },
+  "tenable": {
+    "last_scan": "2026-01-03T04:00:00Z",
+    "vulnerabilities": {
+      "critical": 3,
+      "high": 8,
+      "medium": 24,
+      "low": 45
+    },
+    "scan_failures": {
+      "total": 4,
+      "failed_list": [
+        {
+          "host": "srv-db-005",
+          "reason": "Authentication failed",
+          "time": "2025-12-29T04:15:00Z"
+        },
+        {
+          "host": "srv-app-009",
+          "reason": "Host unreachable",
+          "time": "2025-12-29T04:18:00Z"
+        },
+        {
+          "host": "srv-web-004",
+          "reason": "Scan timeout",
+          "time": "2025-12-29T04:22:00Z"
+        },
+        {
+          "host": "srv-cache-02",
+          "reason": "Connection refused",
+          "time": "2025-12-29T04:25:00Z"
+        }
+      ]
+    },
+    "compliance": {
+      "passed": 89,
+      "failed": 11
+    }
+  },
+  "sourceUrls": {
+    "servicenow": "https://your-instance.service-now.com/nav_to.do?uri=incident_list.do",
+    "bums": "http://your-bums-server/status",
+    "solarwinds": "https://your-solarwinds/Orion/Alerts",
+    "aap": "http://your-aap-server/#/jobs",
+    "audit": "http://your-audit-server/report",
+    "tenable": "https://your-tenable-server/dashboard"
+  },
+  "fetchStatus": {
+    "servicenow": {
+      "ok": true,
+      "timestamp": "2026-01-03T12:10:10Z",
+      "error": "Disabled - using mock data"
+    },
+    "bums": {
+      "ok": true,
+      "timestamp": "2026-01-03T12:10:10Z",
+      "error": "Disabled - using mock data"
+    },
+    "solarwinds": {
+      "ok": true,
+      "timestamp": "2026-01-03T12:10:10Z",
+      "error": "Disabled - using mock data"
+    },
+    "aap": {
+      "ok": true,
+      "timestamp": "2026-01-03T12:10:10Z",
+      "error": "Disabled - using mock data"
+    },
+    "audit": {
+      "ok": true,
+      "timestamp": "2026-01-03T12:10:10Z",
+      "error": "Disabled - using mock data"
+    },
+    "tenable": {
+      "ok": true,
+      "timestamp": "2026-01-03T12:10:10Z",
+      "error": "Disabled - using mock data"
+    }
+  }
+}
