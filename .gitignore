@@ -1,6 +1,7 @@
 # Environment files (contain secrets)
 .env
 *.env.local
+config.json
 
 # Logs
 *.log

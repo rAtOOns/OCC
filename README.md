@@ -6,17 +6,29 @@ A unified operations dashboard that displays real-time status from multiple moni
 
 ## Quick Start
 
-### Start the Dashboard
+### Option 1: Easy Setup (Recommended)
 
+Run the interactive setup wizard:
 ```bash
 cd /path/to/OCC
-./start.sh
+python3 setup.py
 ```
 
-Or manually:
-```bash
-python3 -m http.server 8080
-```
+The wizard will guide you through configuring each data source.
+
+### Option 2: Manual Setup
+
+1. Copy the environment template:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` with your credentials
+
+3. Start the dashboard:
+   ```bash
+   ./start.sh
+   ```
 
 Then open: **http://localhost:8080**
 
