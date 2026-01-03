@@ -889,6 +889,7 @@
 
         function renderBUMS(data) {
             const bums = data.bums;
+            const fs = bums.filesystem || { alerts: 0, alert_list: [] };
             const hasCritical = bums.servers.critical > 0;
             const hasWarning = bums.servers.warning > 0;
             const status = hasCritical ? 'critical' : hasWarning ? 'warning' : 'ok';
@@ -903,7 +904,7 @@
                 </div>
             `).join('');
 
-            const fsAlerts = bums.filesystem.alert_list.map(a => `
+            const fsAlerts = (fs.alert_list || []).map(a => `
                 <div class="list-item" onclick="openSource('bums', event)">
                     <div class="list-item-content">
                         <div class="list-item-title">${a.server}</div>
@@ -915,7 +916,7 @@
 
             return `
                 <article class="card" onclick="openSource('bums')" tabindex="0" role="button"
-                    aria-label="BUMS Unix Monitoring - ${hasDown ? 'Issues detected' : 'Healthy'}. Click to open.">
+                    aria-label="BUMS Unix Monitoring - ${hasCritical ? 'Critical' : hasWarning ? 'Warning' : 'Healthy'}. Click to open.">
                     <div class="card-header">
                         <div class="card-title">
                             <h2>BUMS</h2>
@@ -924,10 +925,10 @@
                         </div>
                         <span class="status-badge status-${status}">
                             <span class="status-icon" aria-hidden="true">${getStatusIcon(status)}</span>
-                            ${hasCritical ? 'Critical' : hasWarning ? 'Warning' : 'Healthy'}
-                        </span>
-                    </div>
-                    <div class="card-body">
+                        ${hasCritical ? 'Critical' : hasWarning ? 'Warning' : 'Healthy'}
+                    </span>
+                </div>
+                <div class="card-body">
                         <div class="section">
                             <div class="section-header">Server Status</div>
                             <div class="stats-grid">
@@ -956,7 +957,7 @@
                             </div>
                         ` : ''}
                         <div class="section">
-                            <div class="section-header">Filesystem (${bums.filesystem.alerts})</div>
+                            <div class="section-header">Filesystem (${fs.alerts})</div>
                             <div class="list">
                                 ${fsAlerts || '<div class="empty-state">No alerts</div>'}
                             </div>
